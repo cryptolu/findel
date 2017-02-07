@@ -397,7 +397,7 @@ contract FincontractMarketplace {
                             ScaleObs(gatewayI, Give(
                                 Or(
                                     Scale(5, One(Currency.USD)),
-                                    ScaleObs(gatewayI, Scale(10, One(Currency.USD)))
+                                    ScaleObs(gatewayI, Scale(10, One(Currency.EUR)))
                                 ))),
                             If(gatewayB,
                                 Zero(),
