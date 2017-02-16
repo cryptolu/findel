@@ -415,6 +415,16 @@ contract FincontractMarketplace {
         
     }  
     
+    function timeboundTest(address addr, uint lowerBound, uint upperBound) returns (bytes32 fctId) {
+
+        var testDsc = Timebound(lowerBound, upperBound, ScaleObs(gatewayI, Give(
+                                    Or(
+                                        Scale(5, One(Currency.USD)),
+                                        ScaleObs(gatewayI, Scale(10, One(Currency.EUR)))
+                                    ))));
+        return issueFor(createFincontract(testDsc), addr);
+    }
+
     /***** GATEWAYS *****/
     
     address gatewayI;    // int
