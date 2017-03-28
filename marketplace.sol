@@ -420,7 +420,7 @@ contract FincontractMarketplace {
         var testDsc = Timebound(lowerBound, upperBound, ScaleObs(gatewayI, Give(
                                     Or(
                                         Scale(5, One(Currency.USD)),
-                                        ScaleObs(gatewayI, Scale(10, One(Currency.EUR)))
+                                        Scale(10, One(Currency.EUR))
                                     ))));
         return issueFor(createFincontract(testDsc), addr);
     }
