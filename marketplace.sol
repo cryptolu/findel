@@ -85,6 +85,7 @@ contract FincontractMarketplace {
         users[msg.sender].registered = true;
         Registered(msg.sender);
     }
+    function isRegistered() returns (bool registered) { return users[msg.sender].registered; }
     
     modifier onlyRegistered() { if (!users[msg.sender].registered) throw; _; }
     modifier onlyOwner(bytes32 fctId) { if (fincontracts[fctId].owner != msg.sender) throw; _; }
@@ -490,7 +491,7 @@ contract GatewayBool is Gateway {
 }
 
 
-contract TheAnswer is Gateway {
+contract GatewayInteger is Gateway {
     
     function newProof() internal returns (bytes32) {
         return keccak256(value, timestamp);
