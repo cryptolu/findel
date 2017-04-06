@@ -136,51 +136,51 @@ contract FincontractMarketplace {
     }
     
     // ZERO: no right, no obligations
-    function Zero() internal returns (bytes32 dcsId) {
+    function Zero() returns (bytes32 dcsId) {
         return GenericDescription(Primitive.ZERO, Currency.NONE, 0x0, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // ONE: receive 1 unit of _curr Currency at execution
-    function One(Currency _curr) internal returns (bytes32 dcsId) {
+    function One(Currency _curr) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.ONE, _curr, 0x0, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // GIVE: swap issuer and owner of _c1id
-    function Give(bytes32 _dscId_1) internal returns (bytes32 dcsId) {
+    function Give(bytes32 _dscId_1) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.GIVE, Currency.NONE, _dscId_1, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // AND: execute _dscId_1 and then execute _dscId_2
-    function And(bytes32 _dscId_1, bytes32 _dscId_2) internal returns (bytes32 dcsId) {
+    function And(bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.AND, Currency.NONE, _dscId_1, _dscId_2, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // OR: owner can choose between executing _dscId_1 or _dscId_2
-    function Or(bytes32 _dscId_1, bytes32 _dscId_2) internal returns (bytes32 dcsId) {
+    function Or(bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.OR, Currency.NONE, _dscId_1, _dscId_2, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // SCALE: multiply all payments by a constant factor
-    function Scale(int _scaleCoeff, bytes32 _dscId) internal returns (bytes32 dcsId) {
+    function Scale(int _scaleCoeff, bytes32 _dscId) returns (bytes32 dcsId) {
         if (_scaleCoeff == 1) return _dscId;   // shortcut for efficiency
         var dsc = descriptions[_dscId];
         return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff * _scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
     }
     
     // SCALEOBS: multiply all payment by an observable obtained from the gateway (resolved at execution)
-    function ScaleObs(address _gateway, bytes32 _dscId) internal returns (bytes32 dcsId) {
+    function ScaleObs(address _gateway, bytes32 _dscId) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.SCALEOBS, Currency.NONE, _dscId, 0x0, 1, _gateway, 0, now + EXPIRATION);
     }
     
     // IF: if obsBool returns true, execute _dscId_1, else execute _dscId_2
-    function If(address _gatewayBool, bytes32 _dscId_1, bytes32 _dscId_2) internal returns (bytes32 dcsId) {
+    function If(address _gatewayBool, bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
         return GenericDescription(Primitive.IF, Currency.NONE, _dscId_1, _dscId_2, 1, _gatewayBool, 0, now + EXPIRATION);
     }
     
     // TIMEBOUND: can execute only if lowerBound <= now <= upperBound
     // Create NEW fc: same as cid, but with time bounds
     // No designated Timebound in Combinators enum
-    function Timebound(uint lowerBound, uint upperBound, bytes32 _dscId_1) internal returns (bytes32 dcsId) {
+    function Timebound(uint lowerBound, uint upperBound, bytes32 _dscId_1) returns (bytes32 dcsId) {
         if (upperBound > now + EXPIRATION) throw;
         var dsc = descriptions[_dscId_1];
         return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff, dsc.gateway, lowerBound, upperBound);
@@ -219,7 +219,7 @@ contract FincontractMarketplace {
     }
     
     // Create a fincontract with oneself as issuer and owner.
-    function createFincontract(bytes32 _dscId) internal returns (bytes32 fctId) {
+    function createFincontract(bytes32 _dscId) returns (bytes32 fctId) {
         return createFincontractWithParties(msg.sender, msg.sender, _dscId);
     }
     
