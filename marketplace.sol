@@ -63,6 +63,8 @@ contract FincontractMarketplace {
     mapping (address => User) users;
     
     // Event is how a user knows which new fincontracts it owns after execution.
+    event PrimitiveStoredAt(bytes32 id);
+
     event Registered(address user);
     event CreatedBy(address user, bytes32 fctId);
     event Owned(address newOwner, bytes32 fctId);
@@ -123,7 +125,7 @@ contract FincontractMarketplace {
     function GenericDescription(Primitive _prim, Currency _curr, bytes32 _dscId_1, bytes32 _dscId_2,
         int _scaleCoeff, address _gateway, uint _begin, uint _end) 
     internal returns (bytes32) {
-        return storeWithId(Description({
+        bytes32 id = storeWithId(Description({
             prim: _prim,
             curr: _curr,
             dscId_1: _dscId_1,
@@ -133,6 +135,8 @@ contract FincontractMarketplace {
             begin: _begin,
             end: _end
         }));
+        PrimitiveStoredAt(id);
+        return id;
     }
     
     // ZERO: no right, no obligations
