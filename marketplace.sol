@@ -26,7 +26,7 @@ contract FincontractMarketplace {
     enum Primitive { ZERO, ONE, GIVE, AND, OR, SCALEOBS, IF }
     
     // NONE must be last in enum due to how register() works.
-    enum Currency { USD, EUR, NONE }
+    enum Currency { USD, EUR, GBP, JPY, CNY, SGD, NONE }
     
     /*
     Description is a recursive data structure reflecting all right and obligations.
