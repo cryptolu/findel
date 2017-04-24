@@ -8,7 +8,7 @@ contract FincontractMarketplace {
     /***** GLOBAL CONSTANTS *****/
     
     // Number of supported currencies
-    uint CURRENCIES = 2;
+    uint CURRENCIES = 6;
     
     // For modeling 'immediate' execution: At(t0) = Timebound ( t0-delta/2, t0+delta/2 )
     uint DELTA = 30 seconds;
