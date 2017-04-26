@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.10;
 
 contract FincontractMarketplace {
     
@@ -77,7 +77,7 @@ contract FincontractMarketplace {
     
     // Registering an address means creating an zero array of proper length.
     function register() {
-        if (users[msg.sender].registered) throw;
+        if (isRegistered()) throw;
         User memory newUser;
         newUser.balance = new int[](CURRENCIES);
         for (uint8 i = 0; i < CURRENCIES; i++) {
@@ -87,7 +87,7 @@ contract FincontractMarketplace {
         users[msg.sender].registered = true;
         Registered(msg.sender);
     }
-    function isRegistered() returns (bool registered) { return users[msg.sender].registered; }
+    function isRegistered() constant returns (bool registered) { return users[msg.sender].registered; }
     
     modifier onlyRegistered() { if (!users[msg.sender].registered) throw; _; }
     modifier onlyOwner(bytes32 fctId) { if (fincontracts[fctId].owner != msg.sender) throw; _; }
