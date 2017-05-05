@@ -163,7 +163,7 @@ contract FincontractMarketplace {
     function Scale(int _scaleCoeff, bytes32 _dscId) internal returns (bytes32 dcsId) {
         if (_scaleCoeff == 1) return _dscId;   // shortcut for efficiency
         var dsc = descriptions[_dscId];
-        return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_1, dsc.scaleCoeff * _scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
+        return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff * _scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
     }
     
     // SCALEOBS: multiply all payment by an observable obtained from the gateway (resolved at execution)
@@ -173,7 +173,7 @@ contract FincontractMarketplace {
     
     // IF: if obsBool returns true, execute _dscId_1, else execute _dscId_2
     function If(address _gatewayBool, bytes32 _dscId_1, bytes32 _dscId_2) internal returns (bytes32 dcsId) {
-        return GenericDescription(Primitive.IF, Currency.NONE, _dscId_1, _dscId_1, 1, _gatewayBool, 0, now + EXPIRATION);
+        return GenericDescription(Primitive.IF, Currency.NONE, _dscId_1, _dscId_2, 1, _gatewayBool, 0, now + EXPIRATION);
     }
     
     // TIMEBOUND: can execute only if lowerBound <= now <= upperBound
@@ -352,16 +352,16 @@ contract FincontractMarketplace {
     
     /***** TESTING *****/
     
-    function test() returns (bytes32 fctId) {
+    function simpleTest(address addr) returns (bytes32 fctId) {
 
         //For performance measurement: uncomment exactly one line
-        var testDsc = Zero();
+        //var testDsc = Zero();
         
         // 1. One
         //var testDsc = One(Currency.USD);
         
         // 2. Simple currency exchange
-        //var testDsc = And(Give(Scale(11,One(Currency.USD))),Scale(10,One(Currency.EUR)));
+        var testDsc = And(Give(Scale(11,One(Currency.USD))),Scale(10,One(Currency.EUR)));
         
         // 3. ZCB
         //var testDsc = At(now + 1 minutes, Scale(10, One(Currency.USD)));
@@ -384,12 +384,36 @@ contract FincontractMarketplace {
         // 7. FC dependent on numeric Gateway
         //var testDsc = ScaleObs(gatewayI, One(Currency.USD));
         
-        return issueFor(createFincontract(testDsc), 0x0);
+        return issueFor(createFincontract(testDsc), addr);
         
     }
     
     
-    
+      function complexScaleObsTest(address addr) returns (bytes32 fctId) {
+
+
+        var testDsc = Scale(10,
+                        And(
+                            ScaleObs(gatewayI, Give(
+                                Or(
+                                    Scale(5, One(Currency.USD)),
+                                    ScaleObs(gatewayI, Scale(10, One(Currency.EUR)))
+                                ))),
+                            If(gatewayB,
+                                Zero(),
+                                And(
+                                    Scale(3, One(Currency.USD)),
+                                    Give(Scale(7, One(Currency.EUR)))
+                                )
+                            )
+                        )
+                    );
+        
+
+        
+        return issueFor(createFincontract(testDsc), addr);
+        
+    }  
     
     /***** GATEWAYS *****/
     
