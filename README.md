@@ -4,4 +4,4 @@ Findel (**Fin**ancial **De**rivatives **L**anguage) is a domain-specific languag
 
 For more information on Findel see paper: [Findel: Secure Derivative Contracts for Ethereum](https://orbilu.uni.lu/handle/10993/30975).
 
-For a command-line interface for interacting with Findel contracts, see [fincontracts-cli](https://github.com/asiron/fincontracts-cli) and [fincontracts-lib](fincontracts-lib).
+For a command-line interface for interacting with Findel contracts, see [fincontracts-cli](https://github.com/asiron/fincontracts-cli) and [fincontracts-lib](https://github.com/asiron/fincontracts-lib).
