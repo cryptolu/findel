@@ -1,8 +1,8 @@
-pragma solidity ^0.4.10;
+pragma solidity ^0.4.23;
 
 contract FincontractMarketplace {
     
-    function FincontractMarketplace () { }
+    constructor() public { }
     
     
     /***** GLOBAL CONSTANTS *****/
@@ -76,8 +76,8 @@ contract FincontractMarketplace {
     /***** HELPER FUNCTIONS *****/
     
     // Registering an address means creating an zero array of proper length.
-    function register() {
-        if (isRegistered()) throw;
+    function register() public {
+        require(!isRegistered());
         User memory newUser;
         newUser.balance = new int[](CURRENCIES);
         for (uint8 i = 0; i < CURRENCIES; i++) {
@@ -85,34 +85,34 @@ contract FincontractMarketplace {
         }
         users[msg.sender] = newUser;
         users[msg.sender].registered = true;
-        Registered(msg.sender);
+        emit Registered(msg.sender);
     }
-    function isRegistered() constant returns (bool registered) { return users[msg.sender].registered; }
+    function isRegistered() public constant returns (bool registered) { return users[msg.sender].registered; }
     
-    modifier onlyRegistered() { if (!users[msg.sender].registered) throw; _; }
-    modifier onlyOwner(bytes32 fctId) { if (fincontracts[fctId].owner != msg.sender) throw; _; }
+    modifier onlyRegistered() { require(users[msg.sender].registered); _; }
+    modifier onlyOwner(bytes32 fctId) { require(fincontracts[fctId].owner == msg.sender); _; }
     
     /*
     Store a fincontract description in mapping.
     Id is NOT randomized (determined only by description fields).
     */
     function storeWithId(Description dsc) internal returns (bytes32 dscId) {
-        var id = keccak256(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
+        bytes32 id = keccak256(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
         descriptions[id] = dsc;
         return id;
     }
     
     function getBalance(address user) onlyRegistered internal constant returns (int[]) { return users[user].balance; }
-    function getMyBalance() constant returns (int[]) { return getBalance(msg.sender); }
+    function getMyBalance() public constant returns (int[]) { return getBalance(msg.sender); }
     
-    function getDescriptionInfo(bytes32 dscId) constant returns (Primitive prim, Currency curr, bytes32 dscId_1, bytes32 dscId_2, 
+    function getDescriptionInfo(bytes32 dscId) public constant returns (Primitive prim, Currency curr, bytes32 dscId_1, bytes32 dscId_2, 
     int coeff, address gateway, uint begin, uint end) {
-        var dsc = descriptions[dscId];
+        Description storage dsc = descriptions[dscId];
         return (dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
     }
     
-    function getFincontractInfo(bytes32 fctId) constant returns (address issuer, address owner, address proposedOwner, bytes32 dscId) {
-        var fct = fincontracts[fctId];
+    function getFincontractInfo(bytes32 fctId) public constant returns (address issuer, address owner, address proposedOwner, bytes32 dscId) {
+        Fincontract storage fct = fincontracts[fctId];
         return (fct.issuer, fct.owner, fct.proposedOwner, fct.dscId);
     }
     
@@ -135,58 +135,58 @@ contract FincontractMarketplace {
             begin: _begin,
             end: _end
         }));
-        PrimitiveStoredAt(id);
+        emit PrimitiveStoredAt(id);
         return id;
     }
     
     // ZERO: no right, no obligations
-    function Zero() returns (bytes32 dcsId) {
+    function Zero() public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.ZERO, Currency.NONE, 0x0, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // ONE: receive 1 unit of _curr Currency at execution
-    function One(Currency _curr) returns (bytes32 dcsId) {
+    function One(Currency _curr) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.ONE, _curr, 0x0, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // GIVE: swap issuer and owner of _c1id
-    function Give(bytes32 _dscId_1) returns (bytes32 dcsId) {
+    function Give(bytes32 _dscId_1) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.GIVE, Currency.NONE, _dscId_1, 0x0, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // AND: execute _dscId_1 and then execute _dscId_2
-    function And(bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
+    function And(bytes32 _dscId_1, bytes32 _dscId_2) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.AND, Currency.NONE, _dscId_1, _dscId_2, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // OR: owner can choose between executing _dscId_1 or _dscId_2
-    function Or(bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
+    function Or(bytes32 _dscId_1, bytes32 _dscId_2) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.OR, Currency.NONE, _dscId_1, _dscId_2, 1, 0x0, 0, now + EXPIRATION);
     }
     
     // SCALE: multiply all payments by a constant factor
-    function Scale(int _scaleCoeff, bytes32 _dscId) returns (bytes32 dcsId) {
+    function Scale(int _scaleCoeff, bytes32 _dscId) public returns (bytes32 dcsId) {
         if (_scaleCoeff == 1) return _dscId;   // shortcut for efficiency
-        var dsc = descriptions[_dscId];
+        Description storage dsc = descriptions[_dscId];
         return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff * _scaleCoeff, dsc.gateway, dsc.begin, dsc.end);
     }
     
     // SCALEOBS: multiply all payment by an observable obtained from the gateway (resolved at execution)
-    function ScaleObs(address _gateway, bytes32 _dscId) returns (bytes32 dcsId) {
+    function ScaleObs(address _gateway, bytes32 _dscId) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.SCALEOBS, Currency.NONE, _dscId, 0x0, 1, _gateway, 0, now + EXPIRATION);
     }
     
     // IF: if obsBool returns true, execute _dscId_1, else execute _dscId_2
-    function If(address _gatewayBool, bytes32 _dscId_1, bytes32 _dscId_2) returns (bytes32 dcsId) {
+    function If(address _gatewayBool, bytes32 _dscId_1, bytes32 _dscId_2) public returns (bytes32 dcsId) {
         return GenericDescription(Primitive.IF, Currency.NONE, _dscId_1, _dscId_2, 1, _gatewayBool, 0, now + EXPIRATION);
     }
     
     // TIMEBOUND: can execute only if lowerBound <= now <= upperBound
     // Create NEW fc: same as cid, but with time bounds
     // No designated Timebound in Combinators enum
-    function Timebound(uint lowerBound, uint upperBound, bytes32 _dscId_1) returns (bytes32 dcsId) {
-        if (upperBound > now + EXPIRATION) throw;
-        var dsc = descriptions[_dscId_1];
+    function Timebound(uint lowerBound, uint upperBound, bytes32 _dscId_1) public returns (bytes32 dcsId) {
+        require(upperBound <= now + EXPIRATION);
+        Description storage dsc = descriptions[_dscId_1];
         return GenericDescription(dsc.prim, dsc.curr, dsc.dscId_1, dsc.dscId_2, dsc.scaleCoeff, dsc.gateway, lowerBound, upperBound);
     }
     
@@ -217,23 +217,23 @@ contract FincontractMarketplace {
         fct.proposedOwner = _owner;
         bytes32 _fctId = keccak256(now, _issuer, _owner, _dscId);
         fincontracts[_fctId] = fct;
-        CreatedBy(_issuer, _fctId);
-        Owned(_owner, _fctId);
+        emit CreatedBy(_issuer, _fctId);
+        emit Owned(_owner, _fctId);
         return _fctId;
     }
     
     // Create a fincontract with oneself as issuer and owner.
-    function createFincontract(bytes32 _dscId) returns (bytes32 fctId) {
+    function createFincontract(bytes32 _dscId) public returns (bytes32 fctId) {
         return createFincontractWithParties(msg.sender, msg.sender, _dscId);
     }
     
     // Until the proposed owner joins, old owner holds all rights and obligations.
-    function issueFor(bytes32 _fctId, address _proposedOwner)
+    function issueFor(bytes32 _fctId, address _proposedOwner) public
     onlyOwner(_fctId)
     onlyRegistered
     returns (bytes32 fctId) {
         fincontracts[_fctId].proposedOwner = _proposedOwner;
-        IssuedFor(_proposedOwner, _fctId);
+        emit IssuedFor(_proposedOwner, _fctId);
         return _fctId; // useless, kept for uniformity
     }
     
@@ -244,14 +244,14 @@ contract FincontractMarketplace {
         if (fincontracts[fctId].proposedOwner == msg.sender || fincontracts[fctId].proposedOwner == 0x0) {
             fincontracts[fctId].owner = msg.sender;
             fincontracts[fctId].proposedOwner = msg.sender;
-            Owned(msg.sender, fctId);
+            emit Owned(msg.sender, fctId);
             return true;
         }
         return false;
     }
     
     // Own and execute a fincontract. NB: Can't separate owning and executing!
-    function join(bytes32 fctId)
+    function join(bytes32 fctId) public
     onlyRegistered
     returns (bool executedCompletely) {
         return own(fctId) ? execute(fctId) : false;
@@ -298,8 +298,8 @@ contract FincontractMarketplace {
             createFincontractWithParties(issuer, owner, Scale(scaleCoeffAcc, dscId));   // sic! dsc.scaleCoeff handled inside
             return false;
         } else if (dsc.prim == Primitive.IF || dsc.prim == Primitive.SCALEOBS) {
-            var gateway = Gateway(dsc.gateway);
-            if (now - gateway.getTimestamp() > FRESHNESS) throw;
+            Gateway gateway = Gateway(dsc.gateway);
+            require(now - gateway.getTimestamp() <= FRESHNESS);
             if (dsc.prim == Primitive.IF) {
                 return executeRecursive(issuer, owner, (gateway.getValue() != 0) ? dsc.dscId_1 : dsc.dscId_2, scaleCoeffAcc * dsc.scaleCoeff);
             } else if (dsc.prim == Primitive.SCALEOBS) {
@@ -311,14 +311,14 @@ contract FincontractMarketplace {
     }
     
     // Recursively execute and then delete a fincontact.
-    function execute(bytes32 fctId)
+    function execute(bytes32 fctId) public
     onlyOwner(fctId)
     onlyRegistered
     returns (bool executedCompletely) {
-        var fct = fincontracts[fctId];
+        Fincontract storage fct = fincontracts[fctId];
         bool executed = executeRecursive(fct.issuer, fct.owner, fct.dscId, 1);
         if (executed) {
-            Executed(fctId);
+            emit Executed(fctId);
         }
         // fincontract must be executable at most once, thus delete in any case.
         deleteFincontract(fctId);
@@ -329,17 +329,17 @@ contract FincontractMarketplace {
     function choose(bytes32 fctIdOr, bool chooseFirst) internal
     onlyOwner(fctIdOr)
     returns (bytes32 ftcId) {
-        var fct = fincontracts[fctIdOr];
-        var dsc = descriptions[fct.dscId];
-        if (dsc.prim != Primitive.OR) throw;
-        var chosenFctId = createFincontractWithParties(fct.issuer, fct.owner, 
+        Fincontract storage fct = fincontracts[fctIdOr];
+        Description storage dsc = descriptions[fct.dscId];
+        require(dsc.prim == Primitive.OR);
+        bytes32 chosenFctId = createFincontractWithParties(fct.issuer, fct.owner, 
             Timebound(dsc.begin, dsc.end, Scale(dsc.scaleCoeff, chooseFirst ? dsc.dscId_1 : dsc.dscId_2)));
         deleteFincontract(fctIdOr);
         return chosenFctId;
     }
     
     // Execute the chosen fincontract.
-    function executeOr(bytes32 fctIdOr, bool chooseFirst)
+    function executeOr(bytes32 fctIdOr, bool chooseFirst) public
     onlyOwner(fctIdOr)
     onlyRegistered
     returns (bool executedCompletely) {
@@ -349,7 +349,7 @@ contract FincontractMarketplace {
     function deleteFincontract(bytes32 fctId) internal {
         if (fincontracts[fctId].dscId != 0) {
             delete fincontracts[fctId];
-            Deleted(fctId);
+            emit Deleted(fctId);
         }
     }
 
@@ -357,23 +357,23 @@ contract FincontractMarketplace {
     
     /***** TESTING *****/
     
-    function simpleTest(address addr) returns (bytes32 fctId) {
+    function simpleTest(address addr) public returns (bytes32 fctId) {
 
         //For performance measurement: uncomment exactly one line
-        //var testDsc = Zero();
+        //bytes32 testDsc = Zero();
         
         // 1. One
-        //var testDsc = One(Currency.USD);
+        //bytes32 testDsc = One(Currency.USD);
         
         // 2. Simple currency exchange
-        var testDsc = And(Give(Scale(11,One(Currency.USD))),Scale(10,One(Currency.EUR)));
+        bytes32 testDsc = And(Give(Scale(11,One(Currency.USD))),Scale(10,One(Currency.EUR)));
         
         // 3. ZCB
-        //var testDsc = At(now + 1 minutes, Scale(10, One(Currency.USD)));
+        //bytes32 testDsc = At(now + 1 minutes, Scale(10, One(Currency.USD)));
         
         // 4. Bond with 2 coupons
         /*
-        var testDsc = 
+        bytes32 testDsc = 
                 And(
                     And(
                         At(now + 1 minutes, One(Currency.USD)),
@@ -381,23 +381,23 @@ contract FincontractMarketplace {
                     At(now + 3 minutes, Scale(5, One(Currency.USD))));
         */
         // 5. European option
-        //var testDsc = At(now + 1 minutes, Or(One(Currency.USD), One(Currency.EUR)));
+        //bytes32 testDsc = At(now + 1 minutes, Or(One(Currency.USD), One(Currency.EUR)));
         
         // 6. FC dependent on boolean Gateway, a.k.a Binary option
-        //var testDsc = If(gatewayB, One(Currency.USD), One(Currency.EUR));
+        //bytes32 testDsc = If(gatewayB, One(Currency.USD), One(Currency.EUR));
         
         // 7. FC dependent on numeric Gateway
-        //var testDsc = ScaleObs(gatewayI, One(Currency.USD));
+        //bytes32 testDsc = ScaleObs(gatewayI, One(Currency.USD));
         
         return issueFor(createFincontract(testDsc), addr);
         
     }
     
     
-      function complexScaleObsTest(address addr) returns (bytes32 fctId) {
+      function complexScaleObsTest(address addr) public returns (bytes32 fctId) {
 
 
-        var testDsc = Scale(10,
+        bytes32 testDsc = Scale(10,
                         And(
                             ScaleObs(gatewayI, Give(
                                 Or(
@@ -420,9 +420,9 @@ contract FincontractMarketplace {
         
     }  
     
-    function timeboundTest(address addr, uint lowerBound, uint upperBound) returns (bytes32 fctId) {
+    function timeboundTest(address addr, uint lowerBound, uint upperBound) public returns (bytes32 fctId) {
 
-        var testDsc = Timebound(lowerBound, upperBound, ScaleObs(gatewayI, Give(
+        bytes32 testDsc = Timebound(lowerBound, upperBound, ScaleObs(gatewayI, Give(
                                     Or(
                                         Scale(5, One(Currency.USD)),
                                         Scale(10, One(Currency.EUR))
@@ -435,12 +435,12 @@ contract FincontractMarketplace {
     address gatewayI;    // int
     address gatewayB;   // bool
     
-    function setGatewayI(address _addr) {
+    function setGatewayI(address _addr) public {
         gatewayI = _addr;
     }
     
     
-    function setGatewayB(address _addr) {
+    function setGatewayB(address _addr) public {
         gatewayB = _addr;
     }
     
@@ -458,17 +458,17 @@ contract Gateway {
     uint timestamp;
     bytes32 proof;
     
-    function Gateway() { update(); }
+    constructor() public { update(); }
     
-    function getValue() returns (int) { return value; }
-    function getTimestamp() returns (uint) { return timestamp; }
-    function getProof() returns (bytes32) { return proof; }
+    function getValue() public view returns (int) { return value; }
+    function getTimestamp() public view returns (uint) { return timestamp; }
+    function getProof() public view returns (bytes32) { return proof; }
     
     function newProof() internal returns (bytes32);
     function newValue() internal returns (int);
     
     // bind updating value, timestamp, and proof to prevent inconsistency
-    function update() {
+    function update() public {
         value = newValue();
         proof = newProof();
         timestamp = now;
@@ -478,7 +478,7 @@ contract Gateway {
 
 contract GatewayBool is Gateway {
     
-    function newBooleanValue() internal returns (bool) {
+    function newBooleanValue() internal view returns (bool) {
         return (block.timestamp % 2 == 0);
     }
     
